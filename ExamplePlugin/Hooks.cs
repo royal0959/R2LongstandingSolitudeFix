@@ -19,10 +19,37 @@ namespace LongstandingSolitudeFix
             On.RoR2.SceneExitController.SetState += SceneExitController_SetState;
             On.RoR2.PlayerCharacterMasterController.OnBodyStart += PlayerCharacterMasterController_OnBodyStart;
             GlobalEventManager.onCharacterLevelUp += GlobalEventManager_onCharacterLevelUp;
-            On.RoR2.CharacterBody.OnInventoryChanged += CharacterBody_OnInventoryChanged;
+            //On.RoR2.CharacterBody.OnInventoryChanged += CharacterBody_OnInventoryChanged;
             On.RoR2.PurchaseInteraction.OnInteractionBegin += PurchaseInteraction_OnInteractionBegin;
+            On.RoR2.Inventory.GiveItem_ItemIndex_int += Inventory_GiveItem_ItemIndex_int;
 
             Run.onRunStartGlobal += Run_onRunStartGlobal;
+        }
+
+        private static void Inventory_GiveItem_ItemIndex_int(On.RoR2.Inventory.orig_GiveItem_ItemIndex_int orig, Inventory self, ItemIndex itemIndex, int count)
+        {
+            orig(self, itemIndex, count);
+
+            if (itemIndex != DLC2Content.Items.OnLevelUpFreeUnlock.itemIndex)
+            {
+                return;
+            }
+
+            CharacterMaster master = self.gameObject.GetComponent<CharacterMaster>();
+
+            if (master == null)
+            {
+                return;
+            }
+
+            CharacterBody body = master.GetBody();
+
+            if (body == null)
+            {
+                return;
+            }
+
+            ReplaceLSWithPearl(body, self);
         }
 
         private static void PurchaseInteraction_OnInteractionBegin(On.RoR2.PurchaseInteraction.orig_OnInteractionBegin orig, PurchaseInteraction self, Interactor activator)
@@ -52,7 +79,7 @@ namespace LongstandingSolitudeFix
             {
                 return;
             }
-            
+
             // if item was free: regain the buffs we lost
             // as FreeUnlock buff is still removed after purchasing free interactables (such as a hacked shrine)
 
@@ -79,8 +106,6 @@ namespace LongstandingSolitudeFix
 
             int itemsCount = inventory.GetItemCount(DLC2Content.Items.OnLevelUpFreeUnlock);
 
-            Log.Info($"itemsCount {itemsCount}");
-
             if (itemsCount < 1)
             {
                 return;
@@ -91,20 +116,20 @@ namespace LongstandingSolitudeFix
             CharacterMasterNotificationQueue.SendTransformNotification(body.master, DLC2Content.Items.OnLevelUpFreeUnlock.itemIndex, RoR2Content.Items.Pearl.itemIndex, CharacterMasterNotificationQueue.TransformationType.Default);
         }
 
-        private static void CharacterBody_OnInventoryChanged(On.RoR2.CharacterBody.orig_OnInventoryChanged orig, CharacterBody self)
-        {
-            orig(self);
+        //private static void CharacterBody_OnInventoryChanged(On.RoR2.CharacterBody.orig_OnInventoryChanged orig, CharacterBody self)
+        //{
+        //    orig(self);
 
-            if (NetworkServer.active)
-            {
-                Log.Info($"le count {self.inventory.GetItemCount(DLC2Content.Items.OnLevelUpFreeUnlock)}");
+        //    if (NetworkServer.active)
+        //    {
+        //        Log.Info($"le count {self.inventory.GetItemCount(DLC2Content.Items.OnLevelUpFreeUnlock)}");
 
-                if (self.inventory.GetItemCount(DLC2Content.Items.OnLevelUpFreeUnlock) >= 1)
-                {
-                    ReplaceLSWithPearl(self.GetBody(), self.inventory);
-                }
-            }
-        }
+        //        if (self.inventory.GetItemCount(DLC2Content.Items.OnLevelUpFreeUnlock) >= 1)
+        //        {
+        //            ReplaceLSWithPearl(self.GetBody(), self.inventory);
+        //        }
+        //    }
+        //}
 
         private static void GlobalEventManager_onCharacterLevelUp(CharacterBody body)
         {
@@ -122,29 +147,46 @@ namespace LongstandingSolitudeFix
         {
             orig(self);
 
-            foreach (KeyValuePair<PlayerCharacterMasterController, int> entry in playersLastBuffCount)
+            //foreach (KeyValuePair<PlayerCharacterMasterController, int> entry in playersLastBuffCount)
+            //{
+            //    CharacterMaster master = entry.Key.master;
+
+            //    if (master == null)
+            //    {
+            //        return;
+            //    }
+
+            //    CharacterBody body = master.GetBody();
+
+            //    if (body == null)
+            //    {
+            //        return;
+            //    }
+
+            //    for (int i = 0; i < entry.Value; i++)
+            //    {
+            //        body.AddBuff(DLC2Content.Buffs.FreeUnlocks);
+            //    }
+            //}
+
+            if (!playersLastBuffCount.ContainsKey(self))
             {
-                CharacterMaster master = entry.Key.master;
-
-                if (master == null)
-                {
-                    return;
-                }
-
-                CharacterBody body = master.GetBody();
-
-                if (body == null)
-                {
-                    return;
-                }
-
-                for (int i = 0; i < entry.Value; i++)
-                {
-                    body.AddBuff(DLC2Content.Buffs.FreeUnlocks);
-                }
+                return;
             }
 
-            playersLastBuffCount.Clear();
+            CharacterBody body = self.master.GetBody();
+
+            if (body == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < playersLastBuffCount[self]; i++)
+            {
+                body.AddBuff(DLC2Content.Buffs.FreeUnlocks);
+            }
+
+            playersLastBuffCount.Remove(self);
         }
 
         private static void SceneExitController_SetState(On.RoR2.SceneExitController.orig_SetState orig, SceneExitController self, SceneExitController.ExitState newState)
