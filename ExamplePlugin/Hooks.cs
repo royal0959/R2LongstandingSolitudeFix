@@ -10,7 +10,8 @@ namespace LongstandingSolitudeFix
 {
     public class Hooks
     {
-        // TODO: fix interacting with free item consuming a buff
+        // TODO: fix LS added after full level not giving pearl
+
         private static Dictionary<PlayerCharacterMasterController, int> playersLastBuffCount = [];
 
         internal static void Init()
@@ -19,8 +20,53 @@ namespace LongstandingSolitudeFix
             On.RoR2.PlayerCharacterMasterController.OnBodyStart += PlayerCharacterMasterController_OnBodyStart;
             GlobalEventManager.onCharacterLevelUp += GlobalEventManager_onCharacterLevelUp;
             On.RoR2.CharacterBody.OnInventoryChanged += CharacterBody_OnInventoryChanged;
+            On.RoR2.PurchaseInteraction.OnInteractionBegin += PurchaseInteraction_OnInteractionBegin;
 
             Run.onRunStartGlobal += Run_onRunStartGlobal;
+        }
+
+        private static void PurchaseInteraction_OnInteractionBegin(On.RoR2.PurchaseInteraction.orig_OnInteractionBegin orig, PurchaseInteraction self, Interactor activator)
+        {
+            int lastBuffsCount = 0;
+
+            CharacterBody body = activator.GetComponent<CharacterBody>();
+
+            if (body != null)
+            {
+                lastBuffsCount = body.GetBuffCount(DLC2Content.Buffs.FreeUnlocks);
+            }
+
+            orig(self, activator);
+
+            if (lastBuffsCount == 0)
+            {
+                return;
+            }
+
+            if (body == null)
+            {
+                return;
+            }
+
+            if (self.cost > 0)
+            {
+                return;
+            }
+            
+            // if item was free: regain the buffs we lost
+            // as FreeUnlock buff is still removed after purchasing free interactables (such as a hacked shrine)
+
+            int buffsAfter = body.GetBuffCount(DLC2Content.Buffs.FreeUnlocks);
+
+            if ((lastBuffsCount - buffsAfter) <= 0)
+            {
+                return;
+            }
+
+            for (int i = 0; i < (lastBuffsCount - buffsAfter); i++)
+            {
+                body.AddBuff(DLC2Content.Buffs.FreeUnlocks);
+            }
         }
 
         // turn into pearl at full level
@@ -57,7 +103,6 @@ namespace LongstandingSolitudeFix
                 {
                     ReplaceLSWithPearl(self.GetBody(), self.inventory);
                 }
-
             }
         }
 
