@@ -1,4 +1,5 @@
-# Growth Nectar Rework
-![new stats](https://github.com/royal0959/R2NectarReworkMod/blob/main/new_stats.png?raw=true)
+# Longstanding Solitude Fix
 
-Idea & mod icon art by colonel
+* Makes free purchase buffs persist after teleporting
+* Makes Longstanding Solitude turn into a Pearl after reaching max level (and turning any future Longstanding Solitudes picked up to Pearl)
+* Fixes free purchase buff being taken away after interacting with a free purchaseable (like a hacked shrine)
