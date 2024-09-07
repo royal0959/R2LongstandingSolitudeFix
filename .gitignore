@@ -332,3 +332,5 @@ ASALocalRun/
 .ExamplePlugin/bin/*
 .Thunderstore/
 .Plugin/
+
+*.zip
