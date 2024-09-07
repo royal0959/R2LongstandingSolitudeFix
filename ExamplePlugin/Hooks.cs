@@ -4,41 +4,89 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using UnityEngine.Networking;
 
 namespace LongstandingSolitudeFix
 {
     public class Hooks
     {
-        // TODO: make this reset every run start
+        // TODO: fix interacting with free item consuming a buff
         private static Dictionary<PlayerCharacterMasterController, int> playersLastBuffCount = [];
 
         internal static void Init()
         {
-            //On.RoR2.PurchaseInteraction.OnInteractionBegin += PurchaseInteraction_OnInteractionBegin;
-
             On.RoR2.SceneExitController.SetState += SceneExitController_SetState;
-            //On.RoR2.SceneDirector.Start += SceneDirector_Start;
-
             On.RoR2.PlayerCharacterMasterController.OnBodyStart += PlayerCharacterMasterController_OnBodyStart;
+            GlobalEventManager.onCharacterLevelUp += GlobalEventManager_onCharacterLevelUp;
+            On.RoR2.CharacterBody.OnInventoryChanged += CharacterBody_OnInventoryChanged;
+
+            Run.onRunStartGlobal += Run_onRunStartGlobal;
+        }
+
+        // turn into pearl at full level
+        private static void ReplaceLSWithPearl(CharacterBody body, Inventory inventory)
+        {
+            if (body.level < TeamManager.naturalLevelCap)
+            {
+                return;
+            }
+
+            int itemsCount = inventory.GetItemCount(DLC2Content.Items.OnLevelUpFreeUnlock);
+
+            Log.Info($"itemsCount {itemsCount}");
+
+            if (itemsCount < 1)
+            {
+                return;
+            }
+
+            inventory.RemoveItem(DLC2Content.Items.OnLevelUpFreeUnlock, itemsCount);
+            inventory.GiveItem(RoR2Content.Items.Pearl, itemsCount);
+            CharacterMasterNotificationQueue.SendTransformNotification(body.master, DLC2Content.Items.OnLevelUpFreeUnlock.itemIndex, RoR2Content.Items.Pearl.itemIndex, CharacterMasterNotificationQueue.TransformationType.Default);
+        }
+
+        private static void CharacterBody_OnInventoryChanged(On.RoR2.CharacterBody.orig_OnInventoryChanged orig, CharacterBody self)
+        {
+            orig(self);
+
+            if (NetworkServer.active)
+            {
+                Log.Info($"le count {self.inventory.GetItemCount(DLC2Content.Items.OnLevelUpFreeUnlock)}");
+
+                if (self.inventory.GetItemCount(DLC2Content.Items.OnLevelUpFreeUnlock) >= 1)
+                {
+                    ReplaceLSWithPearl(self.GetBody(), self.inventory);
+                }
+
+            }
+        }
+
+        private static void GlobalEventManager_onCharacterLevelUp(CharacterBody body)
+        {
+            ReplaceLSWithPearl(body, body.inventory);
+        }
+
+        // reset every run start
+        private static void Run_onRunStartGlobal(Run obj)
+        {
+            playersLastBuffCount.Clear();
         }
 
         // give back buff every scene change
         private static void PlayerCharacterMasterController_OnBodyStart(On.RoR2.PlayerCharacterMasterController.orig_OnBodyStart orig, PlayerCharacterMasterController self)
         {
             orig(self);
-            Log.Info($"BODYSTART");
 
             foreach (KeyValuePair<PlayerCharacterMasterController, int> entry in playersLastBuffCount)
             {
                 CharacterMaster master = entry.Key.master;
-                Log.Info($"PlayerCharacterMasterController {entry.Key} naster {master} body {master.GetBody()} amount {entry.Value}");
 
                 if (master == null)
                 {
                     return;
                 }
 
-                CharacterBody body = master.GetBody();  
+                CharacterBody body = master.GetBody();
 
                 if (body == null)
                 {
@@ -51,7 +99,7 @@ namespace LongstandingSolitudeFix
                 }
             }
 
-            playersLastBuffCount.Clear();   
+            playersLastBuffCount.Clear();
         }
 
         private static void SceneExitController_SetState(On.RoR2.SceneExitController.orig_SetState orig, SceneExitController self, SceneExitController.ExitState newState)
@@ -61,13 +109,8 @@ namespace LongstandingSolitudeFix
                 var instances = PlayerCharacterMasterController.instances;
                 foreach (var playerCharacterMaster in PlayerCharacterMasterController.instances)
                 {
-                    //You can get the master via playerCharacterMaster.master
-                    //and the body via playerCharacterMaster.master.GetBody()
-
                     CharacterMaster master = playerCharacterMaster.master;
                     int buffsCount = master.GetBody().GetBuffCount(DLC2Content.Buffs.FreeUnlocks);
-
-                    Log.Info($"buffsCount {buffsCount}");
 
                     playersLastBuffCount[playerCharacterMaster] = buffsCount;
                 }
@@ -75,69 +118,5 @@ namespace LongstandingSolitudeFix
 
             orig(self, newState);
         }
-
-        //private static void SceneDirector_Start(On.RoR2.SceneDirector.orig_Start orig, SceneDirector self)
-        //{
-            //Log.Info("SCENE DIRECTOR STARTED!!!");
-            //orig(self);
-
-            //foreach (KeyValuePair<CharacterMaster, int> entry in playersLastBuffCount)
-            //{
-            //    Log.Info($"master {entry.Key} body {entry.Key.GetBody()} amount {entry.Value}");
-
-            //    for (int i = 0; i < entry.Value; i++)
-            //    {
-            //        entry.Key.GetBody().AddBuff(DLC2Content.Buffs.FreeUnlocks);
-            //    }
-            //}
-
-            //foreach (CharacterMaster readOnlyInstances3 in CharacterMaster.readOnlyInstancesList)
-            //{
-            //    Log.Info($"masterrrrr {readOnlyInstances3} body {readOnlyInstances3.GetBody()}");
-            //}
-        //}
-
-
-        //private static void PurchaseInteraction_OnInteractionBegin(On.RoR2.PurchaseInteraction.orig_OnInteractionBegin orig, PurchaseInteraction self, Interactor activator)
-        //{
-        //    if (stack <= 0)
-        //    {
-        //        orig(self, activator);
-        //        return;
-        //    }
-
-        //    int oldBuffsCount = this.body.GetBuffCount(DLC2Content.Buffs.FreeUnlocks);
-        //    orig(self, activator);
-        //    int newBuffsCount = this.body.GetBuffCount(DLC2Content.Buffs.FreeUnlocks);
-
-        //    Log.Info($"oldBuffsCount {oldBuffsCount} newBuffsCount {newBuffsCount}");
-
-
-        //    Inventory inventory = this.body.inventory;
-        //    int itemCount = inventory.GetItemCount(CustomItems.FreeUnlockHolder);
-
-        //    // TODO: move this sync check to FreeUnlockHolderBehavior
-        //    // if buff is higher, that means we got more freeunlock buffs from external sources
-        //    // don't sync yet
-        //    if (oldBuffsCount > itemCount)
-        //    {
-        //        return;
-        //    }
-
-        //    if (newBuffsCount < oldBuffsCount)
-        //    {
-        //        int count = (newBuffsCount - itemCount);
-
-        //        inventory.GiveItem(CustomItems.FreeUnlockHolder, count);
-        //        Log.Info($"Buff stack: {inventory.GetItemCount(CustomItems.FreeUnlockHolder)}");
-        //    }
-        //    else if (newBuffsCount > oldBuffsCount)
-        //    {
-        //        int count = (itemCount - newBuffsCount);
-
-        //        inventory.GiveItem(CustomItems.FreeUnlockHolder, count);
-        //        Log.Info($"Buff stack: {inventory.GetItemCount(CustomItems.FreeUnlockHolder)}");
-        //    }
-        //}
     }
 }
