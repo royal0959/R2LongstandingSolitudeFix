@@ -28,10 +28,9 @@ namespace LongstandingSolitudeFix
 
         private static void Inventory_GiveItem_ItemIndex_int(On.RoR2.Inventory.orig_GiveItem_ItemIndex_int orig, Inventory self, ItemIndex itemIndex, int count)
         {
-            orig(self, itemIndex, count);
-
             if (itemIndex != DLC2Content.Items.OnLevelUpFreeUnlock.itemIndex)
             {
+                orig(self, itemIndex, count);
                 return;
             }
 
@@ -39,6 +38,7 @@ namespace LongstandingSolitudeFix
 
             if (master == null)
             {
+                orig(self, itemIndex, count);
                 return;
             }
 
@@ -46,10 +46,20 @@ namespace LongstandingSolitudeFix
 
             if (body == null)
             {
+                orig(self, itemIndex, count);
                 return;
             }
 
-            ReplaceLSWithPearl(body, self);
+            if (body.level < TeamManager.naturalLevelCap)
+            {
+                orig(self, itemIndex, count);
+                return;
+            }
+
+            orig(self, RoR2Content.Items.Pearl.itemIndex, count);
+            CharacterMasterNotificationQueue.SendTransformNotification(body.master, DLC2Content.Items.OnLevelUpFreeUnlock.itemIndex, RoR2Content.Items.Pearl.itemIndex, CharacterMasterNotificationQueue.TransformationType.Default);
+
+            //ReplaceLSWithPearl(body, self);
         }
 
         private static void PurchaseInteraction_OnInteractionBegin(On.RoR2.PurchaseInteraction.orig_OnInteractionBegin orig, PurchaseInteraction self, Interactor activator)
