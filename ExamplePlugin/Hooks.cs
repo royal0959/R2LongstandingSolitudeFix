@@ -10,8 +10,6 @@ namespace LongstandingSolitudeFix
 {
     public class Hooks
     {
-        // TODO: fix LS added after full level not giving pearl
-
         private static Dictionary<PlayerCharacterMasterController, int> playersLastBuffCount = [];
 
         internal static void Init()
@@ -156,28 +154,6 @@ namespace LongstandingSolitudeFix
         private static void PlayerCharacterMasterController_OnBodyStart(On.RoR2.PlayerCharacterMasterController.orig_OnBodyStart orig, PlayerCharacterMasterController self)
         {
             orig(self);
-
-            //foreach (KeyValuePair<PlayerCharacterMasterController, int> entry in playersLastBuffCount)
-            //{
-            //    CharacterMaster master = entry.Key.master;
-
-            //    if (master == null)
-            //    {
-            //        return;
-            //    }
-
-            //    CharacterBody body = master.GetBody();
-
-            //    if (body == null)
-            //    {
-            //        return;
-            //    }
-
-            //    for (int i = 0; i < entry.Value; i++)
-            //    {
-            //        body.AddBuff(DLC2Content.Buffs.FreeUnlocks);
-            //    }
-            //}
 
             if (!playersLastBuffCount.ContainsKey(self))
             {
