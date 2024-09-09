@@ -179,11 +179,23 @@ namespace LongstandingSolitudeFix
         {
             if (newState == SceneExitController.ExitState.TeleportOut)
             {
-                var instances = PlayerCharacterMasterController.instances;
                 foreach (var playerCharacterMaster in PlayerCharacterMasterController.instances)
                 {
                     CharacterMaster master = playerCharacterMaster.master;
-                    int buffsCount = master.GetBody().GetBuffCount(DLC2Content.Buffs.FreeUnlocks);
+
+                    if (master == null)
+                    {
+                        continue;
+                    }
+
+                    CharacterBody masterBody = master.GetBody();
+
+                    if (masterBody == null)
+                    { 
+                        continue; 
+                    }
+
+                    int buffsCount = masterBody.GetBuffCount(DLC2Content.Buffs.FreeUnlocks);
 
                     playersLastBuffCount[playerCharacterMaster] = buffsCount;
                 }
