@@ -18,6 +18,7 @@ namespace LongstandingSolitudeFix
         public void Awake()
         {
             Log.Init(Logger);
+            Configs.Init(); 
             Hooks.Init();
         }
     }

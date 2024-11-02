@@ -32,6 +32,12 @@ namespace LongstandingSolitudeFix
                 return;
             }
 
+            if (Configs.BreakIntoPearl.Value != true)
+            {
+                orig(self, itemIndex, count);
+                return;
+            }
+
             CharacterMaster master = self.gameObject.GetComponent<CharacterMaster>();
 
             if (master == null)
@@ -107,6 +113,11 @@ namespace LongstandingSolitudeFix
         // turn into pearl at full level
         private static void ReplaceLSWithPearl(CharacterBody body, Inventory inventory)
         {
+            if (Configs.BreakIntoPearl.Value != true)
+            {
+                return;
+            }
+
             if (body.level < TeamManager.naturalLevelCap)
             {
                 return;
