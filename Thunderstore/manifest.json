@@ -1,8 +1,8 @@
 ﻿{
 	"name": "LongstandingSolitudeFix",
-	"version_number": "1.0.2",
+	"version_number": "1.0.3",
 	"website_url": "https://github.com/royal0959/R2LongstandingSolitudeFix",
-	"description": "Makes free purchases persist after teleporting, makes item break into Pearl after reaching max level, and fixes free purchase being consumed by free purchaseables",
+	"description": "Makes Longstanding Solitude break into a Pearl after reaching max level, fixes free purchase being consumed by 0 cost purchases",
 	"dependencies": [
 		"bbepis-BepInExPack-5.4.2108",
 		"RiskofThunder-HookGenPatcher-1.2.3",
